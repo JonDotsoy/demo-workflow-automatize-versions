@@ -1,0 +1,12 @@
+on:
+    push:
+        branches:
+            - develop
+        paths:
+            - k8s/**
+
+jobs:
+    hi:
+        runs-on: ubuntu-latest
+        steps:
+            - run: echo hello

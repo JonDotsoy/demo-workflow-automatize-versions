@@ -8,85 +8,90 @@ on:
 jobs:
     hi:
         runs-on: ubuntu-latest
-        permissions:
-            contents: write
-        env:
-            CONF_BASE_PATHS: k8s
-            # DRY_RUN: true
         steps:
-            - uses: actions/checkout@v4
-              with:
-                  fetch-tags: true
-                  fetch-depth: 0
-            - run: |
-                git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-                git config --global user.name "github-actions[bot]"
-            - name: changes 
-              run: |
-                set -e
+            - run: find .
+              working-directory: ${{ github.path }}
+    # hi:
+    #     runs-on: ubuntu-latest
+    #     permissions:
+    #         contents: write
+    #     env:
+    #         CONF_BASE_PATHS: k8s
+    #         # DRY_RUN: true
+    #     steps:
+    #         - uses: actions/checkout@v4
+    #           with:
+    #               fetch-tags: true
+    #               fetch-depth: 0
+    #         - run: |
+    #             git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+    #             git config --global user.name "github-actions[bot]"
+    #         - name: changes 
+    #           run: |
+    #             set -e
 
-                cat << EOF > query_1.jq
-                    split("\n")
-                    | map(
-                        select(. != "")
-                    )
-                    | map(
-                        split("/")[-1]
-                        # "git describe --tags --abbrev=0 --match " + (split("/")[-1] | @sh)
-                    )
-                    | .[]
-                EOF
+    #             cat << EOF > query_1.jq
+    #                 split("\n")
+    #                 | map(
+    #                     select(. != "")
+    #                 )
+    #                 | map(
+    #                     split("/")[-1]
+    #                     # "git describe --tags --abbrev=0 --match " + (split("/")[-1] | @sh)
+    #                 )
+    #                 | .[]
+    #             EOF
 
-                cat << EOF > query_2.jq
-                    split("-")
-                    | .[1] = (
-                        .[1]
-                        | split(".")
-                        # Increment minor value
-                        | .[1] = (.[1] | tonumber | . + 1 | tostring)
-                        | join(".")
-                    ) 
-                    | .[1]
-                EOF
+    #             cat << EOF > query_2.jq
+    #                 split("-")
+    #                 | .[1] = (
+    #                     .[1]
+    #                     | split(".")
+    #                     # Increment minor value
+    #                     | .[1] = (.[1] | tonumber | . + 1 | tostring)
+    #                     | join(".")
+    #                 ) 
+    #                 | .[1]
+    #             EOF
 
-                names=$(ls -d $CONF_BASE_PATHS/* | jq -Rsr -f query_1.jq)
+    #             names=$(ls -d $CONF_BASE_PATHS/* | jq -Rsr -f query_1.jq)
 
-                for app_name in $names
-                do
-                    app_name_tag=`echo $app_name | sed 's/-/_/g'`
-                    app_config_path="k8s/$app_name/"
-                    echo "> find last tag with match '$app_name_tag-*'"
+    #             for app_name in $names
+    #             do
+    #                 app_name_tag=`echo $app_name | sed 's/-/_/g'`
+    #                 app_config_path="k8s/$app_name/"
+    #                 echo "> find last tag with match '$app_name_tag-*'"
 
-                    git_ref=`git describe --tags --abbrev=0 --match "$app_name_tag-*" 2>/dev/null || git rev-list --max-parents=0 HEAD`
-                    git_tag=`git describe --tags --abbrev=0 --match "$app_name_tag-*" 2>/dev/null || echo "$app_name_tag-0.0.0"`
+    #                 git_ref=`git describe --tags --abbrev=0 --match "$app_name_tag-*" 2>/dev/null || git rev-list --max-parents=0 HEAD`
+    #                 git_tag=`git describe --tags --abbrev=0 --match "$app_name_tag-*" 2>/dev/null || echo "$app_name_tag-0.0.0"`
 
-                    # find diffs
-                    echo "> find diff between $git_ref...head"
-                    diff=`git --no-pager diff --stat $git_ref $app_config_path`
-                    with_diff=false
+    #                 # find diffs
+    #                 echo "> find diff between $git_ref...head"
+    #                 diff=`git --no-pager diff --stat $git_ref $app_config_path`
+    #                 with_diff=false
 
-                    if [[ $diff != "" ]]
-                    then
-                        with_diff=true
-                    fi
+    #                 if [[ $diff != "" ]]
+    #                 then
+    #                     with_diff=true
+    #                 fi
 
-                    if [[ $with_diff == "true" ]]; then
-                        # Make a new version
-                        new_version=`echo $git_tag | jq -Rr -f query_2.jq`
-                        release_path="k8s_releases/$app_name/$new_version/"
-                        echo "> new version $new_version to $app_name. Make $release_path"
-                        mkdir -p $release_path
-                        cp -r $app_config_path/* $release_path
-                        if [[ $DRY_RUN != "true" ]]; then
-                          git add $release_path
-                          git commit -m "chore($app_name): new version $new_version"
-                          git tag $app_name_tag-$new_version
-                          git tag -f $app_name_tag-latest $app_name_tag-$new_version
-                        fi
-                    fi
-                done
+    #                 if [[ $with_diff == "true" ]]; then
+    #                     # Make a new version
+    #                     new_version=`echo $git_tag | jq -Rr -f query_2.jq`
+    #                     release_path="k8s_releases/$app_name/$new_version/"
+    #                     echo "> new version $new_version to $app_name. Make $release_path"
+    #                     mkdir -p $release_path
+    #                     cp -r $app_config_path/* $release_path
+    #                     if [[ $DRY_RUN != "true" ]]; then
+    #                       git add $release_path
+    #                       git commit -m "chore($app_name): new version $new_version"
+    #                       git tag $app_name_tag-$new_version
+    #                       git tag -f $app_name_tag-latest $app_name_tag-$new_version
+    #                     fi
+    #                 fi
+    #             done
 
-                if [[ $DRY_RUN != "true" ]]; then
-                  git push
-                  git push --tags -f
-                fi
+    #             if [[ $DRY_RUN != "true" ]]; then
+    #               git push
+    #               git push --tags -f
+    #             fi

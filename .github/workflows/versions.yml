@@ -9,6 +9,7 @@ jobs:
     hi:
         runs-on: ubuntu-latest
         steps:
+            - run: pwd
             - run: echo "${{ toJson(github) }}" | jq
     # hi:
     #     runs-on: ubuntu-latest

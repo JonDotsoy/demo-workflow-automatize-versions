@@ -10,6 +10,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - run: pwd
+            - run: find ${{ github.workspace }}
             - run: echo "${{ toJson(github) }}" | jq
     # hi:
     #     runs-on: ubuntu-latest

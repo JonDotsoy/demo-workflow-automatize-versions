@@ -9,6 +9,7 @@ jobs:
     hi:
         runs-on: ubuntu-latest
         steps:
+            - uses: actions/checkout@v4
             - run: pwd
             - run: find ${{ github.workspace }}
             - run: echo "${{ toJson(github) }}" | jq
